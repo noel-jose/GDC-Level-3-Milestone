@@ -132,7 +132,6 @@ $ python tasks.py runserver # Starts the tasks management server"""
         items = self.current_items
         pending_items = list(map(lambda key: f"<li>{items[key]} [{key}]</li>", items))
         html = " ".join(pending_items)
-        print(html)
         return f"<h1> Pending Tasks </h1><ol>{html}</ol>"
 
     def render_completed_tasks(self):
@@ -141,7 +140,6 @@ $ python tasks.py runserver # Starts the tasks management server"""
         items = self.completed_items
         pending_items = list(map(lambda item: f"<li>{item}</li>", items))
         html = " ".join(pending_items)
-        print(html)
         return f"<h1> Completed Tasks </h1><ol>{html}</ol>"
 
 
