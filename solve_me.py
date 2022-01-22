@@ -176,7 +176,7 @@ $ python tasks.py runserver # Starts the tasks management server"""
         html = " ".join(pending_items)
         return f"""<h1> Pending Tasks </h1><ol>{html}</ol>
                 <h3>Enter the priority of the task to be marked as done</h3>
-                <form method="POST" action="/delete_task">
+                <form method="POST" action="/done_task">
                     <input name="priority" placeholder="Enter priority" type ="number">
                     <input type="submit">
                 </form>"""
@@ -184,7 +184,6 @@ $ python tasks.py runserver # Starts the tasks management server"""
     def list_task(self):
         self.read_current()
         items = self.current_items
-        print(items)
         pending_items = list(map(lambda key: f"<li>{items[key]} [{key}]</li>", items))
         html = " ".join(pending_items)
         finalHtml = f"<h1>Todo App</h1><h2> Pending Tasks </h2><ol>{html}</ol>"
@@ -242,7 +241,7 @@ class TasksServer(TasksCommand, BaseHTTPRequestHandler):
             self.send_header("Location", "/")
             self.end_headers()
 
-        if self.path == "/delete_task":
+        elif self.path == "/delete_task":
             contentLength = int(self.headers["Content-length"])
             postData = self.rfile.read(contentLength)
             data = postData.decode()
@@ -253,7 +252,7 @@ class TasksServer(TasksCommand, BaseHTTPRequestHandler):
             self.send_header("Location", "/")
             self.end_headers()
 
-        if self.path == "/done_task":
+        elif self.path == "/done_task":
             contentLength = int(self.headers["Content-length"])
             postData = self.rfile.read(contentLength)
             data = postData.decode()
@@ -263,3 +262,8 @@ class TasksServer(TasksCommand, BaseHTTPRequestHandler):
             self.send_response(303)
             self.send_header("Location", "/")
             self.end_headers()
+
+        elif self.path == "/":
+            content = task_command_object.list_task()
+
+        self.wfile.write(content.encode())
