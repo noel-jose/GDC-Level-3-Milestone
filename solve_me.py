@@ -1,4 +1,5 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from urllib.parse import parse_qs
 
 
 class TasksCommand:
@@ -142,6 +143,18 @@ $ python tasks.py runserver # Starts the tasks management server"""
         html = " ".join(pending_items)
         return f"<h1> Completed Tasks </h1><ol>{html}</ol>"
 
+    # function to implement the add task feature
+    def add_task(self):
+        html = """<h1>Add Task</h1>
+                <form method="POST" action="/add_task">
+                <input type="name" name='taskname' placeholder="Enter task name" />
+                <input
+                    type="number" name='priority'
+                    placeholder="Enter priority"
+                /><input type="submit" />
+                </form>"""
+        return html
+
 
 class TasksServer(TasksCommand, BaseHTTPRequestHandler):
     def do_GET(self):
@@ -150,6 +163,14 @@ class TasksServer(TasksCommand, BaseHTTPRequestHandler):
             content = task_command_object.render_pending_tasks()
         elif self.path == "/completed":
             content = task_command_object.render_completed_tasks()
+        elif self.path == "/add":
+            content = task_command_object.add_task()
+        elif self.path == "/delete":
+            content = task_command_object.delete_task()
+        elif self.path == "/done":
+            content = task_command_object.done_task()
+        elif self.path == "/list":
+            content = task_command_object.list_task()
 
         else:
             self.send_response(404)
@@ -159,3 +180,23 @@ class TasksServer(TasksCommand, BaseHTTPRequestHandler):
         self.send_header("content-type", "text/html")
         self.end_headers()
         self.wfile.write(content.encode())
+
+    def do_POST(self):
+
+        task_command_object = TasksCommand()
+        if self.path == "/add_task":
+            contentLength = int(self.headers["Content-length"])
+            print(contentLength)
+            postData = self.rfile.read(contentLength)
+            print(postData)
+            data = postData.decode()
+            print(data)
+            result = parse_qs(data, strict_parsing=True)
+            print(result)
+            taskname = result["taskname"][0]
+            priority = result["priority"][0]
+            print(taskname)
+            self.add([priority, taskname])
+            self.send_response(303)
+            self.send_header("Location", "/")
+            self.end_headers()
