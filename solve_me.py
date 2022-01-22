@@ -155,6 +155,51 @@ $ python tasks.py runserver # Starts the tasks management server"""
                 </form>"""
         return html
 
+    # function to implement the delete task feature
+    def delete_task(self):
+        self.read_current()
+        items = self.current_items
+        pending_items = list(map(lambda key: f"<li>{items[key]} [{key}]</li>", items))
+        html = " ".join(pending_items)
+        return f"""<h1> Pending Tasks </h1><ol>{html}</ol>
+                <h3>Enter the priority of the task to be deleted</h3>
+                <form method="POST" action="/delete_task">
+                    <input name="priority" placeholder="Enter priority" type ="number">
+                    <input type="submit">
+                </form>"""
+
+    # function to implement the done task feature
+    def done_task(self):
+        self.read_current()
+        items = self.current_items
+        pending_items = list(map(lambda key: f"<li>{items[key]} [{key}]</li>", items))
+        html = " ".join(pending_items)
+        return f"""<h1> Pending Tasks </h1><ol>{html}</ol>
+                <h3>Enter the priority of the task to be marked as done</h3>
+                <form method="POST" action="/delete_task">
+                    <input name="priority" placeholder="Enter priority" type ="number">
+                    <input type="submit">
+                </form>"""
+
+    def list_task(self):
+        self.read_current()
+        items = self.current_items
+        print(items)
+        pending_items = list(map(lambda key: f"<li>{items[key]} [{key}]</li>", items))
+        html = " ".join(pending_items)
+        finalHtml = f"<h1>Todo App</h1><h2> Pending Tasks </h2><ol>{html}</ol>"
+        self.read_completed()
+        items = self.completed_items
+        pending_items = list(map(lambda item: f"<li>{item}</li>", items))
+        html = " ".join(pending_items)
+        finalHtml = finalHtml + f"<h2> Completed Tasks </h2><ol>{html}</ol>"
+        buttons = f"""<a style="text-decoration:none" href="/add"><button>Add task</button> </a>
+                      <a style="text-decoration:none" href="/delete"><button>Delete task</button> </a>
+                      <a style="text-decoration:none" href="/done"><button>Mark as Done</button> </a>
+                   """
+        finalHtml = finalHtml + buttons
+        return finalHtml
+
 
 class TasksServer(TasksCommand, BaseHTTPRequestHandler):
     def do_GET(self):
@@ -169,7 +214,7 @@ class TasksServer(TasksCommand, BaseHTTPRequestHandler):
             content = task_command_object.delete_task()
         elif self.path == "/done":
             content = task_command_object.done_task()
-        elif self.path == "/list":
+        elif self.path == "/":
             content = task_command_object.list_task()
 
         else:
@@ -184,19 +229,37 @@ class TasksServer(TasksCommand, BaseHTTPRequestHandler):
     def do_POST(self):
 
         task_command_object = TasksCommand()
+
         if self.path == "/add_task":
             contentLength = int(self.headers["Content-length"])
-            print(contentLength)
             postData = self.rfile.read(contentLength)
-            print(postData)
             data = postData.decode()
-            print(data)
             result = parse_qs(data, strict_parsing=True)
-            print(result)
             taskname = result["taskname"][0]
             priority = result["priority"][0]
-            print(taskname)
             self.add([priority, taskname])
+            self.send_response(303)
+            self.send_header("Location", "/")
+            self.end_headers()
+
+        if self.path == "/delete_task":
+            contentLength = int(self.headers["Content-length"])
+            postData = self.rfile.read(contentLength)
+            data = postData.decode()
+            result = parse_qs(data, strict_parsing=True)
+            priority = result["priority"][0]
+            self.delete([priority])
+            self.send_response(303)
+            self.send_header("Location", "/")
+            self.end_headers()
+
+        if self.path == "/done_task":
+            contentLength = int(self.headers["Content-length"])
+            postData = self.rfile.read(contentLength)
+            data = postData.decode()
+            result = parse_qs(data, strict_parsing=True)
+            priority = result["priority"][0]
+            self.done([priority])
             self.send_response(303)
             self.send_header("Location", "/")
             self.end_headers()
