@@ -1,4 +1,5 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from urllib.parse import parse_qs
 
 
 class TasksCommand:
@@ -142,6 +143,62 @@ $ python tasks.py runserver # Starts the tasks management server"""
         html = " ".join(pending_items)
         return f"<h1> Completed Tasks </h1><ol>{html}</ol>"
 
+    # function to implement the add task feature
+    def add_task(self):
+        html = """<h1>Add Task</h1>
+                <form method="POST" action="/add_task">
+                <input type="name" name='taskname' placeholder="Enter task name" />
+                <input
+                    type="number" name='priority'
+                    placeholder="Enter priority"
+                /><input type="submit" />
+                </form>"""
+        return html
+
+    # function to implement the delete task feature
+    def delete_task(self):
+        self.read_current()
+        items = self.current_items
+        pending_items = list(map(lambda key: f"<li>{items[key]} [{key}]</li>", items))
+        html = " ".join(pending_items)
+        return f"""<h1> Pending Tasks </h1><ol>{html}</ol>
+                <h3>Enter the priority of the task to be deleted</h3>
+                <form method="POST" action="/delete_task">
+                    <input name="priority" placeholder="Enter priority" type ="number">
+                    <input type="submit">
+                </form>"""
+
+    # function to implement the done task feature
+    def done_task(self):
+        self.read_current()
+        items = self.current_items
+        pending_items = list(map(lambda key: f"<li>{items[key]} [{key}]</li>", items))
+        html = " ".join(pending_items)
+        return f"""<h1> Pending Tasks </h1><ol>{html}</ol>
+                <h3>Enter the priority of the task to be marked as done</h3>
+                <form method="POST" action="/done_task">
+                    <input name="priority" placeholder="Enter priority" type ="number">
+                    <input type="submit">
+                </form>"""
+
+    def list_task(self):
+        self.read_current()
+        items = self.current_items
+        pending_items = list(map(lambda key: f"<li>{items[key]} [{key}]</li>", items))
+        html = " ".join(pending_items)
+        finalHtml = f"<h1>Todo App</h1><h2> Pending Tasks </h2><ol>{html}</ol>"
+        self.read_completed()
+        items = self.completed_items
+        pending_items = list(map(lambda item: f"<li>{item}</li>", items))
+        html = " ".join(pending_items)
+        finalHtml = finalHtml + f"<h2> Completed Tasks </h2><ol>{html}</ol>"
+        buttons = f"""<a style="text-decoration:none" href="/add"><button>Add task</button> </a>
+                      <a style="text-decoration:none" href="/delete"><button>Delete task</button> </a>
+                      <a style="text-decoration:none" href="/done"><button>Mark as Done</button> </a>
+                   """
+        finalHtml = finalHtml + buttons
+        return finalHtml
+
 
 class TasksServer(TasksCommand, BaseHTTPRequestHandler):
     def do_GET(self):
@@ -150,6 +207,14 @@ class TasksServer(TasksCommand, BaseHTTPRequestHandler):
             content = task_command_object.render_pending_tasks()
         elif self.path == "/completed":
             content = task_command_object.render_completed_tasks()
+        elif self.path == "/add":
+            content = task_command_object.add_task()
+        elif self.path == "/delete":
+            content = task_command_object.delete_task()
+        elif self.path == "/done":
+            content = task_command_object.done_task()
+        elif self.path == "/":
+            content = task_command_object.list_task()
 
         else:
             self.send_response(404)
@@ -158,4 +223,47 @@ class TasksServer(TasksCommand, BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("content-type", "text/html")
         self.end_headers()
+        self.wfile.write(content.encode())
+
+    def do_POST(self):
+
+        task_command_object = TasksCommand()
+
+        if self.path == "/add_task":
+            contentLength = int(self.headers["Content-length"])
+            postData = self.rfile.read(contentLength)
+            data = postData.decode()
+            result = parse_qs(data, strict_parsing=True)
+            taskname = result["taskname"][0]
+            priority = result["priority"][0]
+            self.add([priority, taskname])
+            self.send_response(303)
+            self.send_header("Location", "/")
+            self.end_headers()
+
+        elif self.path == "/delete_task":
+            contentLength = int(self.headers["Content-length"])
+            postData = self.rfile.read(contentLength)
+            data = postData.decode()
+            result = parse_qs(data, strict_parsing=True)
+            priority = result["priority"][0]
+            self.delete([priority])
+            self.send_response(303)
+            self.send_header("Location", "/")
+            self.end_headers()
+
+        elif self.path == "/done_task":
+            contentLength = int(self.headers["Content-length"])
+            postData = self.rfile.read(contentLength)
+            data = postData.decode()
+            result = parse_qs(data, strict_parsing=True)
+            priority = result["priority"][0]
+            self.done([priority])
+            self.send_response(303)
+            self.send_header("Location", "/")
+            self.end_headers()
+
+        elif self.path == "/":
+            content = task_command_object.list_task()
+
         self.wfile.write(content.encode())
